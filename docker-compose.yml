@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  opencart:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:80
+    depends_on:
+      - db
+    restart: always
+    environment:
+      DB_HOST: db:3306
+      DB_USER: 'opencart'
+      DB_PASSWORD: 'opencart'
+      DB_DATABASE: 'opencart'
+      OC_USER: 'admin'
+      OC_PASSWORD: 'admin'
+      OC_EMAIL: 'your-email@example.com'
+      OC_HTTP_SERVER: 'http://localhost:8080/'
+      XDEBUG_CONFIG: remote_host=host.docker.internal
+      PHP_IDE_CONFIG: serverName=Docker
+
+
+  db:
+    image: mysql:5.7
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: opencart
+      MYSQL_USER: opencart
+      MYSQL_PASSWORD: opencart
+      MYSQL_ROOT_PASSWORD: opencart

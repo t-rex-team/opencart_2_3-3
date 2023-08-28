@@ -1,0 +1,12 @@
+{% if error_message %}
+<div class="alert alert-warning">
+  {{ error_message }}
+  <button type="button" class="close" data-dismiss="alert">×</button>
+</div>
+{% else %}
+  <div class="buttons">
+    <div class="pull-right">
+      <a href="{{ checkout_url }}" class="btn btn-primary" id="button-confirm">{{ button_confirm }}</a>
+    </div>
+  </div>
+{% endif %}
