@@ -3,7 +3,7 @@
 $model = null;
 $log = null;
 
-const MONOBANK_PAYMENT_VERSION = 'Polia_2.1.0';
+const MONOBANK_PAYMENT_VERSION = 'Polia_2.2.0';
 
 function handleException($e, $m = null, $is_init = false) {
     global $model, $log;
@@ -62,8 +62,7 @@ set_error_handler("fatalErrorHandler");
 
 set_exception_handler("handleException");
 
-class ControllerExtensionPaymentMono extends Controller
-{
+class ControllerExtensionPaymentMono extends Controller {
     private $error = [];
     private $prefix = '';
     private $rates_file_path = 'mono_rates.json';
@@ -105,6 +104,9 @@ class ControllerExtensionPaymentMono extends Controller
         if (!$uah) {
             return;
         }
+
+//        we do not allow custom rate, so we make force update of the rate
+//        it's not pretty, але маємо те шо маємо
         $default_currency_code = $this->config->get('config_currency');
         if ($default_currency_code != 'UAH') {
             $rates = $this->getRates();
@@ -212,11 +214,7 @@ class ControllerExtensionPaymentMono extends Controller
         $this->load->model('sale/order');
 
         if ($order_id <= 0) {
-            try {
-                throw new ErrorException(sprintf("request came in with invalid order_id: %s", $order_id));
-            } catch (Exception $e) {
-                handleException($e);
-            }
+            // invalid order
             return;
         }
 
@@ -238,11 +236,7 @@ class ControllerExtensionPaymentMono extends Controller
                 return;
             }
             if (!$mono_order) {
-                try {
-                    throw new ErrorException(sprintf("invoice not found for order_id: %s", $order_id));
-                } catch (Exception $e) {
-                    handleException($e);
-                }
+//                 nothing to do here
                 return;
             }
             $order_info = $this->model_sale_order->getOrder($order_id);
@@ -513,13 +507,13 @@ class ControllerExtensionPaymentMono extends Controller
         return $rates_data;
     }
 
-    function readSettingsFromFile($filePath) {
+    function readSettingsFromFile($file_path) {
         $settings = [];
 
         // Check if the file exists
-        if (file_exists($filePath)) {
+        if (file_exists($file_path)) {
             // Read the file contents
-            $file_content = file_get_contents($filePath);
+            $file_content = file_get_contents($file_path);
 
             // Parse the contents into an associative array (assuming JSON format)
             $settings = json_decode($file_content, true);

@@ -10,3 +10,4 @@ $_['text_status_cancelled'] = 'monopay: Payment failed, reason -- %s';
 $_['text_status_hold'] = 'monopay: Payment on hold';
 $_['text_status_process'] = 'monopay: Payment is processing';
 $_['text_status_hold_cancelled'] = 'monopay: Hold cancelled';
+$_['text_status_expired'] = 'invoice link expired';

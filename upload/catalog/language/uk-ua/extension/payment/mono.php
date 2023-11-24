@@ -10,3 +10,4 @@ $_['text_status_cancelled'] = 'monopay: Оплата не пройшла, при
 $_['text_status_process'] = 'monopay: Оплата в обробці';
 $_['text_status_hold'] = 'monopay: Оплату захолдовано';
 $_['text_status_hold_cancelled'] = 'monopay: Холд відмінено';
+$_['text_status_expired'] = 'Оплати не було, посилання на оплату протерміновано';

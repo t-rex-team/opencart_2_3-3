@@ -1,7 +1,6 @@
 <?php
 
-class ModelExtensionPaymentMono extends Model
-{
+class ModelExtensionPaymentMono extends Model {
     public function install() {
 
         $this->db->query("
@@ -62,13 +61,35 @@ class ModelExtensionPaymentMono extends Model
         // 	) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
         // ");
 
+        $event_code = 'payment_mono';
+        $trigger = 'admin/view/sale/order_info/before';
+        $action = 'extension/payment/mono/order_info';
+
         if (VERSION < '3.0.0.0') {
             $this->load->model('extension/event');
-            $this->model_extension_event->addEvent('payment_mono', 'admin/view/sale/order_info/before', 'extension/payment/mono/order_info');
+            $events = $this->model_extension_event->getEvents(['code' => $event_code]);
+            $event_model = $this->model_extension_event;
         } else {
             $this->load->model('setting/event');
-            $this->model_setting_event->addEvent('payment_mono', 'admin/view/sale/order_info/before', 'extension/payment/mono/order_info');
+            $events = $this->model_setting_event->getEvents(['code' => $event_code]);
+            $event_model = $this->model_setting_event;
         }
+
+        $total_payment_mono_events = 0;
+        foreach ($events as $event) {
+            if ($event['trigger'] === $trigger && $event['action'] === $action) {
+                $total_payment_mono_events += 1;
+            }
+        }
+
+        if ($total_payment_mono_events > 1) {
+            $event_model->deleteEventByCode('payment_mono');
+            $total_payment_mono_events = 0;
+        }
+        if ($total_payment_mono_events == 0) {
+            $event_model->addEvent($event_code, $trigger, $action);
+        }
+
     }
 
     public function uninstall() {

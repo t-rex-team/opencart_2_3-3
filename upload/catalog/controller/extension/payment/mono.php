@@ -4,7 +4,7 @@
 $client_model = null;
 $log = null;
 
-const MONOBANK_PAYMENT_VERSION = 'Polia_2.1.0';
+const MONOBANK_PAYMENT_VERSION = 'Polia_2.2.0';
 
 function clientHandleException($e, $m = null, $isInit = false) {
     global $client_model, $log;
@@ -62,8 +62,7 @@ set_error_handler("clientFatalErrorHandler");
 set_exception_handler("clientHandleException");
 
 
-class ControllerExtensionPaymentMono extends Controller
-{
+class ControllerExtensionPaymentMono extends Controller {
     private $prefix = '';
     private $settings_file_path = 'monopay_settings.json';
     private $rates_file_path = 'mono_rates.json';
@@ -104,9 +103,11 @@ class ControllerExtensionPaymentMono extends Controller
 
         try {
             if (!isset(self::CURRENCY_CODE[strtoupper($order_info['currency_code'])])) {
-                throw new ErrorException($this->language->get('text_currency_error'));
+                return;
             }
 
+            // we do not allow custom rate, so we make force update of the rate
+            // it's not pretty, але маємо те шо маємо
             $default_ccy = $this->config->get('config_currency');
             if ($default_ccy != 'UAH' && $order_info['currency_code'] == 'UAH') {
                 $rates = $this->getRates();
@@ -196,23 +197,20 @@ class ControllerExtensionPaymentMono extends Controller
                         $this->response->redirect($this->url->link('checkout/success', '', true));
                         break;
                     case 'hold':
-                    {
                         $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_hold_status_id'), $this->language->get('text_status_hold'), true);
                         $this->response->redirect($this->url->link('checkout/success', '', true));
                         break;
-                    }
+                    case 'expired':
+                        $invoice_db['failure_reason'] = $this->language->get('text_status_expired');
+                    //               no break here, making it go to failure
                     case 'failure':
-                    {
                         $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_cancelled_status_id'), sprintf($this->language->get('text_status_cancelled'), $invoice_db['failure_reason']), true);
                         $this->response->redirect($this->url->link('checkout/failure', '', true));
                         break;
-                    }
                     case 'created':
                     case 'processing':
-                    {
 //                        $this->model_checkout_order->addOrderHistory($orderID, $this->config->get($this->prefix . 'mono_order_process_status_id'), $this->language->get('text_status_process'), true);
                         break;
-                    }
                     default:
                         exit('Undefined order status');
                 }
@@ -429,6 +427,9 @@ class ControllerExtensionPaymentMono extends Controller
                         $this->language->get('text_status_process'));
                 }
                 break;
+            case 'expired':
+                $invoice_db['failure_reason'] = $this->language->get('text_status_expired');
+            //               no break here, making it go to failure
             case 'failure':
                 if ($order['order_status_id'] != $this->config->get($this->prefix . 'mono_order_cancelled_status_id')) {
                     $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_cancelled_status_id'),
@@ -703,7 +704,7 @@ class ControllerExtensionPaymentMono extends Controller
                 'sum' => $sum,
                 'qty' => $qty,
                 'code' => $p[$fiscalization_code_field],
-                'icon' => HTTPS_SERVER . "/image / " . $p['image'],
+                'icon' => HTTPS_SERVER . "/image/" . $p['image'],
             ];
             $total_from_basket += $qty * $sum;
         }
