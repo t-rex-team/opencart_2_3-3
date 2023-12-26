@@ -40,3 +40,11 @@ $_['error_permission'] = 'Not enough permissions!';
 
 //Button
 $_['save_btn'] = 'Save';
+
+// Invoices settings page
+$_['settings_text'] = 'Settings';
+$_['invoices_text'] = 'Payments';
+$_['refresh_invoices_btn_text'] = 'Refresh statuses';
+$_['all_statuses_text'] = 'All statuses';
+$_['status_text'] = 'Status';
+$_['created_text'] = 'Order created';

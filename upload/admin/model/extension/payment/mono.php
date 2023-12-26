@@ -174,9 +174,21 @@ WHERE timestamp < DATE_SUB(NOW(), INTERVAL 5 DAY);
     }
 
 
-    public function UpdateSettingsCurrencyValue(string $currency_code, $currency_value) {
-        $sql = "UPDATE `" . DB_PREFIX . "currency` SET value = '" . $this->db->escape($currency_value) . "' WHERE code = '" . $this->db->escape($currency_code) . "'";
+    public function UpdateSettingsCurrencyValue($currency_code, $currency_value) {
+        $sql = "UPDATE `" . DB_PREFIX . "currency` SET value = '" . $this->db->escape($currency_value) . "' 
+        WHERE code = '" . $this->db->escape($currency_code) . "'";
 
         $this->db->query($sql);
+    }
+
+    public function GetInvoices($status) {
+        $where_cond = "";
+        if ($status) {
+            $where_cond = " WHERE status = '" . $status . "' ";
+        }
+        $sql = "SELECT order_id, invoice_id, status, created FROM `" . DB_PREFIX . "monopay_invoice` " . $where_cond . " 
+        ORDER BY created DESC LIMIT 15";
+
+        return $this->db->query($sql)->rows;
     }
 }

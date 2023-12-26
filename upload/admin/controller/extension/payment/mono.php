@@ -3,7 +3,16 @@
 $model = null;
 $log = null;
 
-const MONOBANK_PAYMENT_VERSION = 'Polia_2.2.0';
+const MONOBANK_PAYMENT_VERSION = 'Polia_2.3.2';
+const VALID_STATUSES = [
+    "created" => "ще не сплачено",
+    "processing" => "в процесі обробки",
+    "hold" => "клієнт оплатив, кошти на утриманні",
+    "success" => "клієнт оплатив або холд фіналізовано",
+    "failure" => "оплата не пройшла",
+    "reversed" => "оплату було частково або повністю повернено",
+    "expired" => "успішних спроб оплати не було і не більше буде"
+];
 
 function handleException($e, $m = null, $is_init = false) {
     global $model, $log;
@@ -20,13 +29,14 @@ function handleException($e, $m = null, $is_init = false) {
 
     if ($m == null) {
         $m = $model;
-        if ($model == null) {
-        }
     } else if ($model == null) {
         $model = $m;
     }
     if ($log == null) {
         $log = new Log('error.log');
+    }
+    if (!$e_message || !is_string($e_message)) {
+        $e_message = 'not_a_string_msg';
     }
     if ($m != null) {
         try {
@@ -191,6 +201,25 @@ class ControllerExtensionPaymentMono extends Controller {
         $data['header'] = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
         $data['footer'] = $this->load->controller('common/footer');
+        $data['token'] = $this->session->data['token'] ?? $this->session->data['user_token'];
+        $data['statuses'] = VALID_STATUSES;
+        $data['refresh_invoices_url'] = HTTP_CATALOG . 'index.php?route=extension/payment/mono/refresh_invoices';
+        $data['login_url'] = HTTP_CATALOG . 'index.php?route=api/login';
+
+        $data['settings_text'] = $this->language->get('settings_text');
+        $data['invoices_text'] = $this->language->get('invoices_text');
+        $data['refresh_invoices_btn_text'] = $this->language->get('refresh_invoices_btn_text');
+        $data['all_statuses_text'] = $this->language->get('all_statuses_text');
+        $data['status_text'] = $this->language->get('status_text');
+        $data['created_text'] = $this->language->get('created_text');
+
+        // API login
+        $this->load->model('user/api');
+
+        $api_info = $this->model_user_api->getApi($this->config->get('config_api_id'));
+        if ($api_info) {
+            $data['key'] = $api_info['key'];
+        }
 
         $this->response->setOutput($this->load->view('extension/payment/mono', $data));
     }
@@ -205,6 +234,18 @@ class ControllerExtensionPaymentMono extends Controller {
         }
 
         return !$this->error;
+    }
+
+    private function get_invoices($status) {
+        $invoices = $this->model_extension_payment_mono->GetInvoices($status);
+        $kyiv_or_kiev = in_array('Europe/Kyiv', DateTimeZone::listIdentifiers()) ? 'Europe/Kyiv' : 'Europe/Kiev';
+        foreach ($invoices as $i=>$invoice) {
+            $date = new DateTime($invoice['created'], new DateTimeZone('UTC'));
+//          yes, Kyiv not Kiev
+            $date->setTimezone(new DateTimeZone($kyiv_or_kiev));
+            $invoices[$i]['created'] = $date->format('Y-m-d H:i:s');
+        }
+        return $invoices;
     }
 
     public function order_info(&$route, &$data, &$output) {
@@ -528,5 +569,25 @@ class ControllerExtensionPaymentMono extends Controller {
 
         // Write the contents to the file
         file_put_contents($filePath, $file_content);
+    }
+
+    public function invoices() {
+        $this->response->addHeader('Content-Type: application/json');
+
+        $this->load->model('extension/payment/mono');
+        $this->load->model('sale/order');
+
+        $status = $this->request->get['status'] ?? "";
+        if ($status && !key_exists($status, VALID_STATUSES)) {
+            http_response_code(400);
+            return $this->response->setOutput(json_encode([
+                'err' => "invalid 'status'",
+            ]));
+        }
+
+        $invoices = $this->get_invoices($status);
+        return $this->response->setOutput(json_encode([
+            'invoices' => $invoices,
+        ]));
     }
 }

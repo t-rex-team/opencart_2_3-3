@@ -4,7 +4,7 @@
 $client_model = null;
 $log = null;
 
-const MONOBANK_PAYMENT_VERSION = 'Polia_2.2.0';
+const MONOBANK_PAYMENT_VERSION = 'Polia_2.3.2';
 
 function clientHandleException($e, $m = null, $isInit = false) {
     global $client_model, $log;
@@ -26,6 +26,9 @@ function clientHandleException($e, $m = null, $isInit = false) {
     }
     if ($log == null) {
         $log = new Log('error.log');
+    }
+    if (!$e_message || !is_string($e_message)) {
+        $e_message = 'not_a_string_msg';
     }
     if ($m != null) {
         try {
@@ -184,7 +187,7 @@ class ControllerExtensionPaymentMono extends Controller {
                     $invoice_db['status'] = $status_response['status'];
                     $invoice_db['payment_amount'] = $status_response['amount'];
                     $invoice_db['failure_reason'] = (isset($status_response['failureReason'])) ? $status_response['failureReason'] : null;
-                    $invoice_db['payment_amount_refunded'] = ($invoice_db['payment_type'] == 'debit') ? $status_response['amount'] - $final_amount : $invoice_db['payment_amount_refunded'] + $invoice_db['payment_amount_final'] - $status_response['finalAmount'];
+                    $invoice_db['payment_amount_refunded'] = ($invoice_db['payment_type'] == 'debit') ? $status_response['amount'] - $final_amount : $invoice_db['payment_amount_refunded'] + $invoice_db['payment_amount_final'] - $final_amount;
                     $invoice_db['payment_amount_final'] = $final_amount;
                     $this->model_extension_payment_mono->InvoiceUpdateStatus($invoice_db['invoice_id'], $invoice_db['status'],
                         $invoice_db['payment_amount_final'], $invoice_db['payment_amount'], $invoice_db['payment_amount_refunded'],
@@ -373,10 +376,11 @@ class ControllerExtensionPaymentMono extends Controller {
 
             $invoice_status = $this->getStatus($mono_order['InvoiceId']);
             $payment_type = ($mono_order['is_hold'] == 'hold') ? 'hold' : 'debit';
-            $amount_refunded = $invoice_status['amount'] - $invoice_status['finalAmount'];
 
             $failure_reason = (key_exists('failureReason', $status_response)) ? $status_response['failureReason'] : '';
             $final_amount = (key_exists('finalAmount', $status_response)) ? $status_response['finalAmount'] : 0;
+
+            $amount_refunded = $invoice_status['amount'] - $final_amount;
             $invoice_db = [
                 'invoice_id' => $mono_order['InvoiceId'],
                 'order_id' => $order_id,
@@ -743,5 +747,111 @@ class ControllerExtensionPaymentMono extends Controller {
             unset($item);
         }
         return $basket;
+    }
+
+
+
+    public function refresh_invoices() {
+        $this->response->addHeader('Content-Type: application/json');
+        $api_token = $this->request->get['api_token'];
+
+        $this->load->model('extension/payment/mono');
+        $this->load->model('checkout/order');
+        $this->language->load('extension/payment/mono');
+
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true);
+
+        $invoices = $data['invoices'] ?? [];
+
+        foreach ($invoices as $invoice_id) {
+            $this->refresh_invoice($invoice_id);
+        }
+
+        return $this->response->setOutput(json_encode([
+            'result' => 'ok',
+        ]));
+    }
+
+    function refresh_invoice($invoice_id) {
+        $invoice_db = $this->model_extension_payment_mono->InvoiceGetById($invoice_id);
+        if (!$invoice_db) {
+            return;
+        }
+        $status_response = $this->getStatus($invoice_id);
+
+        $failure_reason = (key_exists('failureReason', $status_response)) ? $status_response['failureReason'] : '';
+        $final_amount = (key_exists('finalAmount', $status_response)) ? $status_response['finalAmount'] : 0;
+
+        $prev_invoice_status = $invoice_db['status'];
+        $prev_amount_refunded = $invoice_db['payment_amount_refunded'];
+        $prev_amount_final = $invoice_db['payment_amount_final'];
+
+        $amount_refunded = $status_response['amount'] - $final_amount;
+
+        switch ($status_response['status']) {
+            case 'created':
+            case 'hold':
+            case 'failure':
+            case 'success':
+            case 'expired':
+                $amount_refunded = 0;
+                break;
+            case 'processing':
+                if ($final_amount == 0) {
+                    $amount_refunded = 0;
+                    break;
+                }
+            case 'reversed':
+                $amount_refunded = $prev_amount_refunded + $prev_amount_final - $final_amount;
+                break;
+        }
+
+        $invoice_db['failure_reason'] = $failure_reason;
+        $invoice_db['payment_amount'] = $status_response['status'] == 'created' ? 0 : $status_response['amount'];
+        $order_id = $invoice_db['order_id'];
+        $this->model_extension_payment_mono->InvoiceUpdateStatus($status_response['invoiceId'],
+            $status_response['status'], $final_amount, $invoice_db['payment_amount'],
+            $amount_refunded, $failure_reason);
+        $order = $this->model_checkout_order->getOrder($order_id);
+
+        switch ($status_response['status']) {
+            case 'created':
+                break;
+            case 'success':
+                if ($order['order_status_id'] != $this->config->get($this->prefix . 'mono_order_success_status_id')) {
+                    $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_success_status_id'), $this->language->get('text_status_success'), true);
+                }
+                break;
+            case 'hold':
+                if ($order['order_status_id'] != $this->config->get($this->prefix . 'mono_order_hold_status_id')) {
+                    $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_hold_status_id'), $this->language->get('text_status_hold'), true);
+                }
+                break;
+            case 'processing':
+                if ($prev_invoice_status == 'created') {
+                    $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_process_status_id'),
+                        $this->language->get('text_status_process'));
+                }
+                break;
+            case 'expired':
+                $invoice_db['failure_reason'] = $this->language->get('text_status_expired');
+            case 'failure':
+                if ($order['order_status_id'] != $this->config->get($this->prefix . 'mono_order_cancelled_status_id')) {
+                    $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_cancelled_status_id'),
+                        sprintf($this->language->get('text_status_cancelled'), $invoice_db['failure_reason']));
+                }
+                break;
+            case 'reversed':
+                if ($order['order_status_id'] == $this->config->get($this->prefix . 'mono_order_success_status_id')) {
+                    $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_success_status_id'),
+                        $this->language->get('text_status_refund'));
+                } else if ($order['order_status_id'] == $this->config->get($this->prefix . 'mono_order_hold_status_id')) {
+                    $this->model_checkout_order->addOrderHistory($order_id, $this->config->get($this->prefix . 'mono_order_cancelled_status_id'),
+                        $this->language->get('text_status_hold_cancelled'));
+                }
+                break;
+            default:
+        }
     }
 }

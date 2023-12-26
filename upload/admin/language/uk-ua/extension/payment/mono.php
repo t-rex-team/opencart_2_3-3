@@ -39,3 +39,11 @@ $_['error_merchant'] = 'Невірний X-Token!';
 $_['error_permission'] = 'Недостатньо прав!';
 //Button
 $_['save_btn'] = 'Зберегти';
+
+// Invoices settings page
+$_['settings_text'] = 'Налаштування';
+$_['invoices_text'] = 'Оплати';
+$_['refresh_invoices_btn_text'] = 'Оновити статуси';
+$_['all_statuses_text'] = 'Всі статуси';
+$_['status_text'] = 'Статус';
+$_['created_text'] = 'Замовлення створено';
