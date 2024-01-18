@@ -3,7 +3,7 @@
 $model = null;
 $log = null;
 
-const MONOBANK_PAYMENT_VERSION = 'Polia_2.3.2';
+const MONOBANK_PAYMENT_VERSION = 'Polia_2.3.3';
 const VALID_STATUSES = [
     "created" => "ще не сплачено",
     "processing" => "в процесі обробки",
@@ -201,7 +201,11 @@ class ControllerExtensionPaymentMono extends Controller {
         $data['header'] = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
         $data['footer'] = $this->load->controller('common/footer');
-        $data['token'] = $this->session->data['token'] ?? $this->session->data['user_token'];
+        if (VERSION < '3.0.0.0') {
+            $data['token'] = $this->session->data['token'];
+        } else {
+            $data['token'] = $this->session->data['user_token'];
+        }
         $data['statuses'] = VALID_STATUSES;
         $data['refresh_invoices_url'] = HTTP_CATALOG . 'index.php?route=extension/payment/mono/refresh_invoices';
         $data['login_url'] = HTTP_CATALOG . 'index.php?route=api/login';
@@ -239,9 +243,8 @@ class ControllerExtensionPaymentMono extends Controller {
     private function get_invoices($status) {
         $invoices = $this->model_extension_payment_mono->GetInvoices($status);
         $kyiv_or_kiev = in_array('Europe/Kyiv', DateTimeZone::listIdentifiers()) ? 'Europe/Kyiv' : 'Europe/Kiev';
-        foreach ($invoices as $i=>$invoice) {
+        foreach ($invoices as $i => $invoice) {
             $date = new DateTime($invoice['created'], new DateTimeZone('UTC'));
-//          yes, Kyiv not Kiev
             $date->setTimezone(new DateTimeZone($kyiv_or_kiev));
             $invoices[$i]['created'] = $date->format('Y-m-d H:i:s');
         }
@@ -577,7 +580,7 @@ class ControllerExtensionPaymentMono extends Controller {
         $this->load->model('extension/payment/mono');
         $this->load->model('sale/order');
 
-        $status = $this->request->get['status'] ?? "";
+        $status = isset($this->request->get['status']) ? $this->request->get['status'] : '';
         if ($status && !key_exists($status, VALID_STATUSES)) {
             http_response_code(400);
             return $this->response->setOutput(json_encode([
