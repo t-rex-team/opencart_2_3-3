@@ -13,7 +13,7 @@
             <div class="col-xs-12"
                  style="padding: 50px; background-color:white; border: 1px solid #ccc; border-radius:24px;">
                 <a href="https://www.monobank.ua/e-comm" target="_blank">
-                    <img src="view/image/payment/monopay_logo.svg" alt="Monobank"
+                    <img src="view/image/payment/plata.svg" alt="Monobank"
                          style="margin-bottom: 2%; width: 20%"/>
                 </a>
                 <div class="col-xs-12" style="margin-bottom: 2%">version <b><?php echo $version ;?></b></div>

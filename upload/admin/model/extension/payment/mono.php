@@ -118,7 +118,7 @@ class ModelExtensionPaymentMono extends Model {
     ///////////////////// MONOPAY ////////////////////////
     //////////////////////////////////////////////////////
 
-    public function InsertLogs(string $key, string $value, string $module_version) {
+    public function InsertLogs($key, $value, string $module_version) {
         $sql = "INSERT INTO `" . DB_PREFIX . "monopay_logs` (`key`, `value`, `module_version`) 
                 VALUES " . sprintf("('%s', '%s', '%s')", $this->db->escape($key), $this->db->escape($value), $this->db->escape($module_version));
 

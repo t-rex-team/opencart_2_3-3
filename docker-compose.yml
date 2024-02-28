@@ -22,6 +22,27 @@ services:
       XDEBUG_CONFIG: remote_host=host.docker.internal
       PHP_IDE_CONFIG: serverName=Docker
 
+  opencart_v2_3:
+    build:
+      context: .
+      dockerfile: Dockerfile_v2_3
+    ports:
+      - 8081:80
+    depends_on:
+      - db
+    restart: always
+    environment:
+      DB_HOST: db:3306
+      DB_USER: 'opencart'
+      DB_PASSWORD: 'opencart'
+      DB_DATABASE: 'opencart'
+      OC_USER: 'admin'
+      OC_PASSWORD: 'admin'
+      OC_EMAIL: 'your-email@example.com'
+      OC_HTTP_SERVER: 'http://localhost:8080/'
+      XDEBUG_CONFIG: remote_host=host.docker.internal
+      PHP_IDE_CONFIG: serverName=Docker
+
 
   db:
     platform: linux/x86_64

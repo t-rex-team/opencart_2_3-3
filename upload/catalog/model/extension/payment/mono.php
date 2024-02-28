@@ -39,7 +39,7 @@ class ModelExtensionPaymentMono extends Model
         return [
             'code' => 'mono',
             'terms' => '',
-            'title' => $this->language->get('text_title') . '<img src="/catalog/view/theme/default/image/monopay_light_bg.svg"  style="width: 75px;margin-left: 5px;display: inline-block;vertical-align: bottom;" alt="monopay"/>',
+            'title' => $this->language->get('text_title') . ' <img src="/catalog/view/theme/default/image/plata.svg" style="width:120px;" alt="plata"/>',
             'sort_order' => $this->config->get($prefix . 'mono_sort_order')
         ];
     }
@@ -127,7 +127,7 @@ class ModelExtensionPaymentMono extends Model
         $this->db->query($sql);
     }
 
-    public function InsertLogs(string $key, string $value, string $moduleVersion) {
+    public function InsertLogs($key, $value, string $moduleVersion) {
         $sql = "INSERT INTO `" . DB_PREFIX . "monopay_logs` (`key`, `value`, `module_version`) 
                 VALUES " . sprintf("('%s', '%s', '%s')", $this->db->escape($key), $this->db->escape($value), $this->db->escape($moduleVersion));
 

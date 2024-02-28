@@ -3,7 +3,7 @@
 $model = null;
 $log = null;
 
-const MONOBANK_PAYMENT_VERSION = 'Polia_2.3.3';
+const MONOBANK_PAYMENT_VERSION = 'Polia_3.0.0';
 const VALID_STATUSES = [
     "created" => "ще не сплачено",
     "processing" => "в процесі обробки",
@@ -93,7 +93,7 @@ class ControllerExtensionPaymentMono extends Controller {
         }
 
         global $model;
-        if (key_exists('monopay_admin_inited', $this->session->data) && $model != null) {
+        if (key_exists('plata_admin_inited', $this->session->data) && $model != null) {
             return;
         }
         $this->load->model('extension/payment/mono');
@@ -108,7 +108,7 @@ class ControllerExtensionPaymentMono extends Controller {
         } catch (Exception $e) {
             handleException($e, $this->model_extension_payment_mono);
         }
-        $this->session->data['monopay_admin_inited'] = true;
+        $this->session->data['plata_admin_inited'] = true;
 
         $uah = $this->model_localisation_currency->getCurrencyByCode('UAH');
         if (!$uah) {

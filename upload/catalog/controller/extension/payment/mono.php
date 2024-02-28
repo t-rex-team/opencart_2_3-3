@@ -4,7 +4,7 @@
 $client_model = null;
 $log = null;
 
-const MONOBANK_PAYMENT_VERSION = 'Polia_2.3.3';
+const MONOBANK_PAYMENT_VERSION = 'Polia_3.0.0';
 
 function clientHandleException($e, $m = null, $isInit = false) {
     global $client_model, $log;
@@ -85,7 +85,7 @@ class ControllerExtensionPaymentMono extends Controller {
             $this->prefix = 'payment_';
         }
 
-        if (!key_exists('monopay_inited', $this->session->data)) {
+        if (!key_exists('plata_inited', $this->session->data)) {
             $this->load->model('checkout/order');
             $this->load->model('extension/payment/mono');
 
@@ -94,7 +94,7 @@ class ControllerExtensionPaymentMono extends Controller {
             } catch (Exception $e) {
                 clientHandleException($e, $this->model_extension_payment_mono, true);
             }
-            $this->session->data['monopay_inited'] = true;
+            $this->session->data['plata_inited'] = true;
         }
     }
 
@@ -334,7 +334,7 @@ class ControllerExtensionPaymentMono extends Controller {
 
         $request_bytes = file_get_contents("php://input");
 
-        if (!$this->verifyMonopaySignature($x_sign, $request_bytes)) {
+        if (!$this->verifyPlataSignature($x_sign, $request_bytes)) {
             $this->response->setOutput(json_encode([
                 'info' => 'invalid X-Sign',
             ]));
@@ -500,7 +500,7 @@ class ControllerExtensionPaymentMono extends Controller {
         }
         $request_path = $_SERVER['REQUEST_URI'];
 
-        if (!$this->verifyMonopaySignature($x_sign, $x_time . $request_path)) {
+        if (!$this->verifyPlataSignature($x_sign, $x_time . $request_path)) {
             http_response_code(400);
             $this->response->setOutput(json_encode([
                 'err' => 'invalid "X-Sign"',
@@ -542,6 +542,11 @@ class ControllerExtensionPaymentMono extends Controller {
         $total = (int)($order_info['total'] * 100 + 0.5);
         $basket_order = $this->getEncodedProducts($order_info['order_id'], $total);
 
+        $customer_emails = [];
+        if (key_exists('email', $order_info) && $order_info['email']) {
+            $customer_emails = [$order_info['email']];
+        }
+
         $curl = curl_init();
         curl_setopt_array($curl, array(
             CURLOPT_URL => 'https://api.monobank.ua/api/merchant/invoice/create',
@@ -559,6 +564,7 @@ class ControllerExtensionPaymentMono extends Controller {
                     'reference' => (string)$order_info['order_id'],
                     'destination' => $destination,
                     'basketOrder' => $basket_order,
+                    'customerEmails' => $customer_emails,
                 ],
                 'redirectUrl' => (string)$this->url->link('extension/payment/mono/response', '', true),
                 'paymentType' => $payment_type,
@@ -586,7 +592,7 @@ class ControllerExtensionPaymentMono extends Controller {
         return json_decode($response, true);
     }
 
-    function verifyMonopaySignature(string $x_sign, $request_bytes) {
+    function verifyPlataSignature(string $x_sign, $request_bytes) {
         $signature = base64_decode($x_sign);
         $pubkey = $this->getPubKey();
         $public_key = openssl_get_publickey(base64_decode($pubkey));
@@ -710,7 +716,7 @@ class ControllerExtensionPaymentMono extends Controller {
         $basket = [];
         foreach ($order_products as $order_product) {
             $sum = (int)($order_product['price'] * 100 + 0.5);
-            $qty = (int)$order_product['quantity'];
+            $qty = (float)$order_product['quantity'];
             $p = $products_map[$order_product['product_id']];
             $basket[] = [
                 'name' => $order_product['name'],

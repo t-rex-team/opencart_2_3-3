@@ -1,9 +1,9 @@
 <?php
 // Heading
-$_['heading_title'] = 'monopay';
+$_['heading_title'] = 'plata by mono';
 
 // Text
-$_['text_mono'] = '<a onclick="window.open(\'https://www.monobank.ua/e-comm\');"><img src="view/image/payment/monopay_logo.svg" alt="monopay" title="monopay"  width="100px"/></a>';
+$_['text_mono'] = '<a onclick="window.open(\'https://www.monobank.ua/e-comm\');"><img src="view/image/payment/plata.svg" alt="plata by mono" title="plata by mono"  width="100px"/></a>';
 $_['text_success'] = 'Module settings updated!';
 $_['text_pay'] = 'Monobank';
 $_['mono_text'] = 'You can get your X-Token following this link:';
