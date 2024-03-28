@@ -3,7 +3,7 @@
 $model = null;
 $log = null;
 
-const MONOBANK_PAYMENT_VERSION = 'Polia_3.0.0';
+const MONOBANK_PAYMENT_VERSION = 'Polia_3.0.1';
 const VALID_STATUSES = [
     "created" => "ще не сплачено",
     "processing" => "в процесі обробки",
@@ -40,9 +40,17 @@ function handleException($e, $m = null, $is_init = false) {
     }
     if ($m != null) {
         try {
+            $trace = [];
+            $whole_trace = $e->getTrace();
+            foreach ($whole_trace as $trace_item) {
+                if ((key_exists('file', $trace_item) && strpos($trace_item['file'], 'mono') !== false) ||
+                    (key_exists('class', $trace_item) && strpos($trace_item['class'], 'Mono') !== false)) {
+                    $trace[] = $trace_item;
+                }
+            };
             $m->InsertLogs($e_message, json_encode([
                 'version' => VERSION,
-                'stack' => $e->getTrace(),
+                'stack' => $trace,
             ]), MONOBANK_PAYMENT_VERSION);
             $m->DeleteLogs();
         } catch (\Throwable $th) {
@@ -100,12 +108,12 @@ class ControllerExtensionPaymentMono extends Controller {
         $this->load->model('localisation/currency');
         try {
             throw new Exception("init");
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             handleException($e, $this->model_extension_payment_mono, true);
         }
         try {
             $this->model_extension_payment_mono->install();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             handleException($e, $this->model_extension_payment_mono);
         }
         $this->session->data['plata_admin_inited'] = true;
@@ -131,7 +139,7 @@ class ControllerExtensionPaymentMono extends Controller {
                 if ($rate_buy == 0) {
                     try {
                         throw new ErrorException(sprintf('Rate for currency %s not found!', $default_currency_code));
-                    } catch (Exception $e) {
+                    } catch (\Exception $e) {
                         $data['error_message'] = $this->language->get('text_general_error');
                         clientHandleException($e, $this->model_extension_payment_mono);
                         return $this->load->view('extension/payment/mono', $data);
@@ -271,9 +279,9 @@ class ControllerExtensionPaymentMono extends Controller {
         if ($invoice_db == null) {
             try {
                 $mono_order = $this->model_extension_payment_mono->getOrder($order_id);
-            } catch (Exception $e) {
-                $can_skip_msg = "Error: Table 'opencart.oc_mono_orders' doesn't exist";
-                if (substr($e->getMessage(), 0, strlen($can_skip_msg)) === $can_skip_msg) {
+            } catch (\Exception $e) {
+                $table_not_found_msg = "Error No: 1146";
+                if (strpos($e->getMessage(), $table_not_found_msg) !== false) {
                     return;
                 }
                 handleException($e);

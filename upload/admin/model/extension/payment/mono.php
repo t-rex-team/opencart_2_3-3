@@ -26,7 +26,7 @@ class ModelExtensionPaymentMono extends Model {
 
         try {
             $this->db->query("CREATE INDEX monopay_invoice_order_id_index ON " . DB_PREFIX . "monopay_invoice (order_id);");
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 //            ignoring this, maybe just write something like create index if not exists
         }
 
@@ -43,7 +43,7 @@ class ModelExtensionPaymentMono extends Model {
 
         try {
             $this->db->query("CREATE INDEX monopay_logs_timestamp_index ON " . DB_PREFIX . "monopay_logs (timestamp);");
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 //            ignoring this, maybe just write something like create index if not exists
         }
 
@@ -118,7 +118,7 @@ class ModelExtensionPaymentMono extends Model {
     ///////////////////// MONOPAY ////////////////////////
     //////////////////////////////////////////////////////
 
-    public function InsertLogs($key, $value, string $module_version) {
+    public function InsertLogs($key, $value, $module_version) {
         $sql = "INSERT INTO `" . DB_PREFIX . "monopay_logs` (`key`, `value`, `module_version`) 
                 VALUES " . sprintf("('%s', '%s', '%s')", $this->db->escape($key), $this->db->escape($value), $this->db->escape($module_version));
 
@@ -134,7 +134,7 @@ WHERE timestamp < DATE_SUB(NOW(), INTERVAL 5 DAY);
         $this->db->query($sql);
     }
 
-    public function InvoiceInsert(string $invoice_id, int $order_id, string $payment_type, int $order_amount, int $payment_amount_refunded, int $payment_amount_final, string $status, int $order_ccy, int $payment_amount, string $failure_reason) {
+    public function InvoiceInsert($invoice_id, $order_id, $payment_type, $order_amount, $payment_amount_refunded, $payment_amount_final, $status, $order_ccy, $payment_amount, $failure_reason) {
         $sql = "INSERT INTO `" . DB_PREFIX . "monopay_invoice` (invoice_id, order_id, payment_type, order_amount, 
         order_ccy, payment_amount, payment_amount_refunded, payment_amount_final, status, failure_reason) 
                 VALUES (" . sprintf("'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'",
@@ -146,14 +146,14 @@ WHERE timestamp < DATE_SUB(NOW(), INTERVAL 5 DAY);
         $this->db->query($sql);
     }
 
-    public function InvoiceFinalizeHold(string $invoice_id) {
+    public function InvoiceFinalizeHold($invoice_id) {
         $sql = "UPDATE `" . DB_PREFIX . "monopay_invoice` 
                 SET modified = now(), finalized = now() WHERE invoice_id = '" . $this->db->escape($invoice_id) . "'";
 
         $this->db->query($sql);
     }
 
-    public function InvoiceGetById(string $invoice_id) {
+    public function InvoiceGetById($invoice_id) {
         $sql = "SELECT * FROM `" . DB_PREFIX . "monopay_invoice` WHERE invoice_id = '" . $this->db->escape($invoice_id) . "'";
 
         $query = $this->db->query($sql);
@@ -161,7 +161,7 @@ WHERE timestamp < DATE_SUB(NOW(), INTERVAL 5 DAY);
         return $query->row;
     }
 
-    public function InvoiceGetLastByOrderId(int $order_id) {
+    public function InvoiceGetLastByOrderId($order_id) {
         $sql = "SELECT * FROM `" . DB_PREFIX . "monopay_invoice` WHERE order_id = " . $this->db->escape($order_id) . " ORDER BY created DESC LIMIT 1";
 
         $query = $this->db->query($sql);

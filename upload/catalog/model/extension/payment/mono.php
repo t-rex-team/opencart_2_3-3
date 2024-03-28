@@ -54,31 +54,31 @@ class ModelExtensionPaymentMono extends Model
         }
     }
 
-    public function getInvoiceId(int $OrderId) {
+    public function getInvoiceId($OrderId) {
         $q = $this->db->query("SELECT * FROM `" . DB_PREFIX . "mono_orders` WHERE OrderId = '" . $OrderId . "'");
 
         return $q->num_rows ? $q->row : false;
     }
 
-    public function getOrderInfo(string $InvoiceId) {
+    public function getOrderInfo($InvoiceId) {
         $q = $this->db->query("SELECT * FROM `" . DB_PREFIX . "mono_orders` WHERE InvoiceId = '" . $this->db->escape($InvoiceId) . "'");
 
         return $q->num_rows ? $q->row : false;
     }
 
-    public function getProducts(array $productIds) {
+    public function getProducts($productIds) {
         $q = $this->db->query("SELECT * FROM `" . DB_PREFIX . "product` WHERE product_id IN (" . implode(",", $productIds) . ")");
 
         return $q->num_rows ? $q->rows : [];
     }
 
-    public function getTotals(int $orderId) {
+    public function getTotals($orderId) {
         $q = $this->db->query("SELECT * FROM `" . DB_PREFIX . "order_total` WHERE order_id =  '" . $orderId . "'");
 
         return $q->num_rows ? $q->rows : [];
     }
 
-    public function getOrderProducts(int $orderId) {
+    public function getOrderProducts($orderId) {
         if (VERSION < '3.0.0.0') {
             return $this->db->query("SELECT * FROM " . DB_PREFIX . "order_product WHERE order_id = '" . $orderId . "'")->rows;
         } else {
@@ -87,7 +87,7 @@ class ModelExtensionPaymentMono extends Model
     }
 
 
-    public function InvoiceInsert(string $invoiceId, int $orderId, string $paymentType, int $orderAmount, int $paymentAmountRefunded, int $paymentAmountFinal, string $status, int $orderCcy, int $paymentAmount) {
+    public function InvoiceInsert($invoiceId, $orderId, $paymentType, $orderAmount, $paymentAmountRefunded, $paymentAmountFinal, $status, $orderCcy, $paymentAmount) {
         $sql = "INSERT INTO `" . DB_PREFIX . "monopay_invoice` (invoice_id, order_id, payment_type, order_amount, order_ccy, payment_amount, payment_amount_refunded, payment_amount_final, status) 
                 VALUES(" . sprintf("'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'", $this->db->escape($invoiceId), $this->db->escape($orderId), $this->db->escape($paymentType),
                 $this->db->escape($orderAmount), $this->db->escape($orderCcy), $this->db->escape($paymentAmount), $this->db->escape($paymentAmountRefunded), $this->db->escape($paymentAmountFinal), $this->db->escape($status)) . ")";
@@ -95,7 +95,7 @@ class ModelExtensionPaymentMono extends Model
         $this->db->query($sql);
     }
 
-    public function InvoiceSelectByOrderId(int $order_id) {
+    public function InvoiceSelectByOrderId($order_id) {
         $sql = "SELECT * FROM `" . DB_PREFIX . "monopay_invoice` WHERE order_id = " . $this->db->escape($order_id) . " ORDER BY created DESC";
 
         $query = $this->db->query($sql);
@@ -103,7 +103,7 @@ class ModelExtensionPaymentMono extends Model
         return $query->rows;
     }
 
-    public function InvoiceGetLastByOrderId(int $order_id) {
+    public function InvoiceGetLastByOrderId($order_id) {
         $sql = "SELECT * FROM `" . DB_PREFIX . "monopay_invoice` WHERE order_id = " . $this->db->escape($order_id) . " ORDER BY created DESC LIMIT 1";
 
         $query = $this->db->query($sql);
@@ -116,7 +116,7 @@ class ModelExtensionPaymentMono extends Model
     }
 
 
-    public function InvoiceUpdateStatus(string $invoice_id, string $status, int $finalAmount, int $paymentAmount, $paymentAmountRefunded, $failureReason) {
+    public function InvoiceUpdateStatus($invoice_id, $status, $finalAmount, $paymentAmount, $paymentAmountRefunded, $failureReason) {
         $sql = "UPDATE `" . DB_PREFIX . "monopay_invoice` 
                 SET modified = now(), status = '" . $this->db->escape($status) . "', payment_amount_final = '" . $this->db->escape($finalAmount) . "', 
                 failure_reason = '" . $this->db->escape($failureReason) . "', 
@@ -127,7 +127,7 @@ class ModelExtensionPaymentMono extends Model
         $this->db->query($sql);
     }
 
-    public function InsertLogs($key, $value, string $moduleVersion) {
+    public function InsertLogs($key, $value, $moduleVersion) {
         $sql = "INSERT INTO `" . DB_PREFIX . "monopay_logs` (`key`, `value`, `module_version`) 
                 VALUES " . sprintf("('%s', '%s', '%s')", $this->db->escape($key), $this->db->escape($value), $this->db->escape($moduleVersion));
 
@@ -143,7 +143,7 @@ WHERE timestamp < DATE_SUB(NOW(), INTERVAL 2 DAY);
         $this->db->query($sql);
     }
 
-    public function SelectLogs(int $from, int $limit, int $offset) {
+    public function SelectLogs($from, $limit, $offset) {
         $sql = "SELECT * FROM `" . DB_PREFIX . "monopay_logs` 
         WHERE timestamp >= '" . $this->db->escape($from) . "' 
         ORDER BY timestamp DESC 
@@ -153,7 +153,7 @@ WHERE timestamp < DATE_SUB(NOW(), INTERVAL 2 DAY);
         return $this->db->query($sql)->rows;
     }
 
-    public function InvoiceGetById(string $invoice_id) {
+    public function InvoiceGetById($invoice_id) {
         $sql = "SELECT * FROM `" . DB_PREFIX . "monopay_invoice` WHERE invoice_id = '" . $this->db->escape($invoice_id) . "'";
 
         $query = $this->db->query($sql);
@@ -161,7 +161,7 @@ WHERE timestamp < DATE_SUB(NOW(), INTERVAL 2 DAY);
         return $query->row;
     }
 
-    public function UpdateSettingsCurrencyValue(string $currencyCode, $currencyValue) {
+    public function UpdateSettingsCurrencyValue($currencyCode, $currencyValue) {
         $sql = "UPDATE `" . DB_PREFIX . "currency` SET value = '" . $this->db->escape($currencyValue) . "' WHERE code = '" . $this->db->escape($currencyCode) . "'";
 
         $this->db->query($sql);
